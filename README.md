@@ -1,2 +1,1 @@
-# MIRA
-Multimodal Image Retrieval Architecture
+**M**ultimodal **I**mage **R**etrieval **A**rchitecture (**M**.**I**.**R**.**A**)
