@@ -71,7 +71,7 @@ class AttentionHead(nn.Module):
 
 
 
-        attention = Q@K.T.reshape(-2,-1)
+        attention = Q @ K.transpose(-2,-1)
         # ------------------------------------------------------------
 
         # Example with tokens to understand Q @ K.T in Attention  
@@ -108,7 +108,7 @@ class AttentionHead(nn.Module):
         
         
         # scaled dot-product attention.
-        attention = attention/qkv_dim**0.5 #Dividing by Square root of QKV_DIM to scale
+        attention = attention/self.qkv_dim**0.5 #Dividing by Square root of QKV_DIM to scale
         # ------------------------------------------------------------
         # Scaling Attention Scores                                
         #                                                         
@@ -198,31 +198,3 @@ class AttentionHead(nn.Module):
         # ✅ This is the heart of the Transformer: each token gets a new vector (Yᵢ) that encodes
         #    not just its own meaning, but also its *context* — how it relates to every other token.
         # ---------------------------------------------------------------------------------------------------
-        
-
-        
-
-
-
-class load_dataset():
-    pass
-
-
-class TransformerEncoder(nn.Module):
-    def __init__(self, d_model, n_heads, mlp_ratio=4)
-    
-    
-
-class MultiHeadAttention(nn.Module):
-    pass
-
-
-class PositionalEmbedding(nn.Module):
-    pass
-
-class VisionEncoder(nn.Module):
-    pass
-
-
-class TextEncoder(nn.Module):
-    pass

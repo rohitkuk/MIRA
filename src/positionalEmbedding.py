@@ -1,3 +1,8 @@
+
+import torch
+import torch.nn as nn
+import numpy as np
+
 class PositionalEmbedding(nn.Module):
         #------------------------------------------------------------------------------
         # PositionalEmbedding:
@@ -21,7 +26,7 @@ class PositionalEmbedding(nn.Module):
 
     def __init__(self, d_model, max_seq_length ):
         super().__init__()
-        self.d_mdoel = d_mdoel
+        self.d_mdoel = d_model
         self.max_seq_length =max_seq_length
         
         pe = torch.zeros(max_seq_length, d_model)
@@ -41,7 +46,7 @@ class PositionalEmbedding(nn.Module):
         # gets a unique, continuous, and learnable-free encoding that preserves relative order. |
 
         div_term = torch.exp(
-            torch.arange(0,d_model,2).float()* (-np.log(10000.0)/d_model())
+            torch.arange(0,d_model,2).float()* (-np.log(10000.0)/d_model)
         )
         # div_term: Frequency scaling factors for sinusoidal positional encoding.  
         # Purpose:
@@ -59,7 +64,7 @@ class PositionalEmbedding(nn.Module):
         #   Each embedding dimension gets a unique wavelength, allowing positions to be encoded
         #   without training extra parameters. |
 
-        pe[:. 0::2] = torch.sin(position * div_term)
+        pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         
         self.register_buffer('pe', pe.unsqueeze(0))
@@ -79,22 +84,22 @@ class PositionalEmbedding(nn.Module):
         #   pe.unsqueeze(0) → Adds batch dimension for broadcasting during forward pass.
         # ---------------------------------------------------------
 
-        def forward(self, x):
-            seq_len = x.size(1)
-            return x + self.pe[:,:seq_len]
-        # ---------------------------------------------------------
-        # Forward pass for positional encoding:
-        # - seq_len = number of tokens in the current input sequence
-        # - self.pe[:, :seq_len] → Slice the positional encodings to match seq_len
-        # - Add positional encodings to token embeddings (x)
-        # Purpose:
-        #   This injects positional information into the embeddings,
-        #   allowing the model to differentiate between tokens' positions.
-        # Shapes:
-        #   x                → [B, seq_len, d_model]
-        #   self.pe[:, :L]   → [1, seq_len, d_model] (broadcasted over batch B)
-        #   output           → [B, seq_len, d_model]
-        # ---------------------------------------------------------
+    def forward(self, x):
+        seq_len = x.size(1)
+        return x + self.pe[:,:seq_len]
+    # ---------------------------------------------------------
+    # Forward pass for positional encoding:
+    # - seq_len = number of tokens in the current input sequence
+    # - self.pe[:, :seq_len] → Slice the positional encodings to match seq_len
+    # - Add positional encodings to token embeddings (x)
+    # Purpose:
+    #   This injects positional information into the embeddings,
+    #   allowing the model to differentiate between tokens' positions.
+    # Shapes:
+    #   x                → [B, seq_len, d_model]
+    #   self.pe[:, :L]   → [1, seq_len, d_model] (broadcasted over batch B)
+    #   output           → [B, seq_len, d_model]
+    # ---------------------------------------------------------
 
             
         

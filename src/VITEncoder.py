@@ -1,3 +1,14 @@
+
+import torch
+import torch.nn as nn
+import numpy as np
+
+from .positionalEmbedding import PositionalEmbedding
+from .transformerEncoder import TransformerEncoder
+from .textEncoder import TextEncoder
+from .textEncoderRetrieval import TextEncoderRetrieval
+
+
 class VisionEncoder(nn.Module):
     # ---------------------------------------------------------
     # VisionEncoder (ViT-style):
@@ -21,10 +32,9 @@ class VisionEncoder(nn.Module):
                  n_heads, n_layers, emb_dim):
         super().__init__()
         
-        assert img_size[0] % patch_size[0] == 0 and img_size[1] % patch_size[1] == 0,
-        "Image Dimension should be divisible by Patch Dim"
+        assert img_size[0] % patch_size[0] == 0 and img_size[1] % patch_size[1] == 0,"Image Dimension should be divisible by Patch Dim"
         
-        assert d_model % n_heads = 0 , "d_model should be divisible by num_heads"
+        assert d_model % n_heads == 0 , "d_model should be divisible by num_heads"
         # ---------------------------------------------------------
         # Validations:
         # 1. Image size must be divisible by patch size in both height and width
@@ -166,7 +176,7 @@ class VisionEncoder(nn.Module):
         #   deeper layers capture high-level, semantic relationships.                   |
         # ----------------------------------------------------------------------------- |
 
-        self.projection = nn.Parameter(torch.randn(d_model, emb_dim), requires_grad_True)
+        self.projection = nn.Parameter(torch.randn(d_model, emb_dim), requires_grad=True)
         # -----------------------------------------------------------------------------  |
         # Learnable linear projection matrix to map patch embeddings from size d_model   |
         # → emb_dim.                                                                     |
@@ -177,124 +187,124 @@ class VisionEncoder(nn.Module):
         # - Initialized with random values from normal distribution.                     |
         # -----------------------------------------------------------------------------  |
 
-        def forward(self, x, mask = None):
-            x = x.self.linear_proj(x)
-            x = x.flatten(2).transpose(-2,-1)
-            # --------------------------------------------------------------------------  |
-            # self.linear_proj(x)                                                         |
-            #   - Applies a convolution with kernel size & stride equal to the patch      |
-            #     size — acting as a **patch extractor + linear projection** in one step. |
-            #   - The kernel slices the image into non-overlapping patches.               |
-            #   - out_channels = d_model projects each patch into a vector of size d_model|
-            #   - Output shape: (B, d_model, H', W') where H'/W' = number of patches     |
-            #     along height/width.                                                    |
-            #                                                                            |
-            # x.flatten(2)                                                               |
-            #   - Flattens (H', W') into a single "patch" dimension.                     |
-            #   - Shape: (B, d_model, num_patches).                                      |
-            #                                                                            |
-            # .transpose(-2, -1)                                                         |
-            #   - Swaps patch dimension & embedding dimension to match Transformer       |
-            #     expected format.                                                       |
-            #   - Final shape: (B, num_patches, d_model).                                |
-            # -------------------------------------------------------------------------- |
-            # -------------------------------------------------------------------------- |
-            # Transformers expect input as a sequence of tokens: (B, sequence_length,    |
-            # embedding_dim).                                                            |
-            # In ViT, each "token" is a patch embedding, so num_patches must come before |
-            # the hidden dimension (d_model) in the tensor shape.                        |
-            #                                                                            |
-            # Example:                                                                   |
-            #   Before transpose: (B, d_model, num_patches)                              |
-            #   After transpose:  (B, num_patches, d_model)  ✅ Matches Transformer input|
-            # -------------------------------------------------------------------------- |
+    def forward(self, x, mask = None):
+        x = self.linear_proj(x)
+        x = x.flatten(2).transpose(-2,-1)
+        # --------------------------------------------------------------------------  |
+        # self.linear_proj(x)                                                         |
+        #   - Applies a convolution with kernel size & stride equal to the patch      |
+        #     size — acting as a **patch extractor + linear projection** in one step. |
+        #   - The kernel slices the image into non-overlapping patches.               |
+        #   - out_channels = d_model projects each patch into a vector of size d_model|
+        #   - Output shape: (B, d_model, H', W') where H'/W' = number of patches     |
+        #     along height/width.                                                    |
+        #                                                                            |
+        # x.flatten(2)                                                               |
+        #   - Flattens (H', W') into a single "patch" dimension.                     |
+        #   - Shape: (B, d_model, num_patches).                                      |
+        #                                                                            |
+        # .transpose(-2, -1)                                                         |
+        #   - Swaps patch dimension & embedding dimension to match Transformer       |
+        #     expected format.                                                       |
+        #   - Final shape: (B, num_patches, d_model).                                |
+        # -------------------------------------------------------------------------- |
+        # -------------------------------------------------------------------------- |
+        # Transformers expect input as a sequence of tokens: (B, sequence_length,    |
+        # embedding_dim).                                                            |
+        # In ViT, each "token" is a patch embedding, so num_patches must come before |
+        # the hidden dimension (d_model) in the tensor shape.                        |
+        #                                                                            |
+        # Example:                                                                   |
+        #   Before transpose: (B, d_model, num_patches)                              |
+        #   After transpose:  (B, num_patches, d_model)  ✅ Matches Transformer input|
+        # -------------------------------------------------------------------------- |
 
-            x = torch.cat(
-                (self.cls_token.expand(x.shape[0],-1,-1),x),
-                dim = 1
-            )
-            # -------------------------------------------------------------------------- |
-            # Add the learnable [CLS] token at the start of the patch sequence.          |
-            #                                                                            |
-            # 1. self.cls_token: shape (1, 1, d_model) → learnable embedding that        |
-            #    represents the "summary" token for the entire image.                    |
-            # 2. .expand(B, 1, d_model): duplicates CLS token for each batch sample.     |
-            # 3. torch.cat(..., dim=1): places CLS token before all patch tokens,        |
-            #    making it the first token in the sequence.                              |
-            #                                                                            |
-            # Final shape: (B, max_seq_len, d_model), where max_seq_len = num_patches+1. |
-            # This CLS token will later hold the global representation after the         |
-            # Transformer layers for classification or projection.                       |
-            # -------------------------------------------------------------------------- |
+        x = torch.cat(
+            (self.cls_token.expand(x.shape[0],-1,-1),x),
+            dim = 1
+        )
+        # -------------------------------------------------------------------------- |
+        # Add the learnable [CLS] token at the start of the patch sequence.          |
+        #                                                                            |
+        # 1. self.cls_token: shape (1, 1, d_model) → learnable embedding that        |
+        #    represents the "summary" token for the entire image.                    |
+        # 2. .expand(B, 1, d_model): duplicates CLS token for each batch sample.     |
+        # 3. torch.cat(..., dim=1): places CLS token before all patch tokens,        |
+        #    making it the first token in the sequence.                              |
+        #                                                                            |
+        # Final shape: (B, max_seq_len, d_model), where max_seq_len = num_patches+1. |
+        # This CLS token will later hold the global representation after the         |
+        # Transformer layers for classification or projection.                       |
+        # -------------------------------------------------------------------------- |
 
-            x = self.positional_embeddings(x)
-            
-            for encoder_layer in self.transformer_encoder:
-                x = encoder_layer(x, mask)
-            # --------------------------------------------------------------------------  |
-            # 1. Add positional embeddings to each token (CLS + patch tokens) so          |
-            #    the Transformer is aware of the order/position of tokens.                |
-            #    Output: (B, max_seq_len, d_model) with position info added.              |
-            #                                                                             |
-            # 2. Pass the sequence through n_layers of TransformerEncoder blocks:         |
-            #    - Each layer applies multi-head self-attention + feed-forward network.   |
-            #    - Uses residual connections and layer normalization.                     |
-            #    - mask (if given) prevents attention to padding tokens.                  |
-            #                                                                             |
-            # Effect: Gradually builds richer contextual representations of the           |
-            # sequence, allowing each patch to attend to every other patch.               |
-            # --------------------------------------------------------------------------  |
-            
-            x = x[:,0,:]
-            # ----------------------------------------------------------------------------|
-            # Select the CLS token embedding from the Transformer output:                 |
-            # - x[:, 0, :] → takes only the first token (CLS) for each batch.             |
-            # - CLS token acts as a learnable "summary" of the entire image,              |
-            #   gathering information from all patches via self-attention.                |
-            # - Output shape: (B, d_model).                                               |
-            # --------------------------------------------------------------------------  |
+        x = self.positional_embeddings(x)
+        
+        for encoder_layer in self.transformer_encoder:
+            x = encoder_layer(x, mask)
+        # --------------------------------------------------------------------------  |
+        # 1. Add positional embeddings to each token (CLS + patch tokens) so          |
+        #    the Transformer is aware of the order/position of tokens.                |
+        #    Output: (B, max_seq_len, d_model) with position info added.              |
+        #                                                                             |
+        # 2. Pass the sequence through n_layers of TransformerEncoder blocks:         |
+        #    - Each layer applies multi-head self-attention + feed-forward network.   |
+        #    - Uses residual connections and layer normalization.                     |
+        #    - mask (if given) prevents attention to padding tokens.                  |
+        #                                                                             |
+        # Effect: Gradually builds richer contextual representations of the           |
+        # sequence, allowing each patch to attend to every other patch.               |
+        # --------------------------------------------------------------------------  |
+        
+        x = x[:,0,:]
+        # ----------------------------------------------------------------------------|
+        # Select the CLS token embedding from the Transformer output:                 |
+        # - x[:, 0, :] → takes only the first token (CLS) for each batch.             |
+        # - CLS token acts as a learnable "summary" of the entire image,              |
+        #   gathering information from all patches via self-attention.                |
+        # - Output shape: (B, d_model).                                               |
+        # --------------------------------------------------------------------------  |
 
-            if self.projection is not None:
-                x = x @ self.projection
-            # ------------------------------------------------------------------------- |
-            # Project CLS token embedding to target embedding dimension                 |
-            # After processing through the Transformer, the CLS token is a vector of    |
-            # size d_model.                                                             |
-            # If emb_dim != d_model, we need to map it into the new space for           |
-            # downstream tasks (e.g., matching image embeddings with text embeddings    |
-            # in CLIP).                                                                 |
-            # The learnable projection matrix (shape: [d_model, emb_dim]) acts like an  |
-            # "exchange rate table", converting features from the d_model space into    |
-            # the emb_dim space.                                                        |
-            # This is done via a matrix multiplication:                                 |
-            #   (B, d_model) @ (d_model, emb_dim) → (B, emb_dim)                        |
-            # The weights are learned so that the projected embeddings align well with  |
-            # the target space.                                                         |
-            # ------------------------------------------------------------------------- |
-            
-            x = x / torch.norm(x, dim = -1, keepdim = True)
-            # ------- L2 Normalization of Embeddings -------|
-            # Computes the Euclidean (L2) norm for each embedding vector:
-            #     norm = sqrt(sum(x_i^2))
-            # Divides each vector by its L2 norm so that its magnitude becomes exactly 1.
-            # This places all embeddings on the surface of a unit hypersphere.
-            #
-            # Why? → Ensures similarity comparisons depend only on direction, not magnitude.
-            # Common in cosine similarity, contrastive learning, and retrieval tasks.
-            #
-            # Visual Analogy:
-            # Before L2 Norm:   -->  Different lengths, same or different directions
-            #    ↑      ↗
-            #    |    ↗
-            #
-            # After L2 Norm:   -->  All vectors have length = 1, on the unit sphere
-            #    ↗      ↗
-            #   /      /
-            #  •------•------•
-            #         center
-            # Now only the angle (direction) matters for similarity.                  |
-            
-            return x
+        if self.projection is not None:
+            x = x @ self.projection
+        # ------------------------------------------------------------------------- |
+        # Project CLS token embedding to target embedding dimension                 |
+        # After processing through the Transformer, the CLS token is a vector of    |
+        # size d_model.                                                             |
+        # If emb_dim != d_model, we need to map it into the new space for           |
+        # downstream tasks (e.g., matching image embeddings with text embeddings    |
+        # in CLIP).                                                                 |
+        # The learnable projection matrix (shape: [d_model, emb_dim]) acts like an  |
+        # "exchange rate table", converting features from the d_model space into    |
+        # the emb_dim space.                                                        |
+        # This is done via a matrix multiplication:                                 |
+        #   (B, d_model) @ (d_model, emb_dim) → (B, emb_dim)                        |
+        # The weights are learned so that the projected embeddings align well with  |
+        # the target space.                                                         |
+        # ------------------------------------------------------------------------- |
+        
+        x = x / torch.norm(x, dim = -1, keepdim = True)
+        # ------- L2 Normalization of Embeddings -------|
+        # Computes the Euclidean (L2) norm for each embedding vector:
+        #     norm = sqrt(sum(x_i^2))
+        # Divides each vector by its L2 norm so that its magnitude becomes exactly 1.
+        # This places all embeddings on the surface of a unit hypersphere.
+        #
+        # Why? → Ensures similarity comparisons depend only on direction, not magnitude.
+        # Common in cosine similarity, contrastive learning, and retrieval tasks.
+        #
+        # Visual Analogy:
+        # Before L2 Norm:   -->  Different lengths, same or different directions
+        #    ↑      ↗
+        #    |    ↗
+        #
+        # After L2 Norm:   -->  All vectors have length = 1, on the unit sphere
+        #    ↗      ↗
+        #   /      /
+        #  •------•------•
+        #         center
+        # Now only the angle (direction) matters for similarity.                  |
+        
+        return x
 
 
 

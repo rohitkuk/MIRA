@@ -1,9 +1,9 @@
-from MultiHeadAttention import MultiHeadAttention
+from .multiAttentionHead import MultiHeadAttention
 import torch.nn as nn
 
-class TransformerEncoder(self):
+class TransformerEncoder(nn.Module):
     
-    def __init__(self, d_model, n_heads, mlp_ratio = 4)
+    def __init__(self, d_model, n_heads, mlp_ratio = 4):
         
         """
         
@@ -59,7 +59,7 @@ class TransformerEncoder(self):
         # residual connection before feeding it into the feed-forward network.   |
         # This helps stabilize training and maintain scale of representations.   |
         # -----------------------------------------------------------------------|
-        self.ln2 = nn.LayerNorm(d_mdoel)
+        self.ln2 = nn.LayerNorm(d_model)
         
         
         # -----------------------------------------------------------------------|
@@ -84,9 +84,9 @@ class TransformerEncoder(self):
 
 
         self.mlp = nn.Sequential(
-            nn.linear(d_model, d_model * self.mlp_ratio),
+            nn.Linear(d_model, d_model * self.mlp_ratio),
             nn.GELU(),
-            nn.Linear(d_model * self.mlp_ratio, self_d_model)
+            nn.Linear(d_model * self.mlp_ratio, self.d_model)
         )
     
         #----------------------------- Mask in CLIP Encoder -----------------------------|

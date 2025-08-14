@@ -1,5 +1,7 @@
 
-from attentionHead import AttentionHead
+import torch
+import torch.nn as nn
+from .attentionHead import AttentionHead
 
 class MultiHeadAttention(nn.Module):
     # ------------------------------------------------------------
