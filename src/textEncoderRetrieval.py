@@ -10,7 +10,7 @@ class TextEncoderRetrieval(nn.Module):
         super().__init__()
         self.max_seq_length = max_seq_length
         self.embed = nn.Embedding(vocab_size, d_model)
-        self.positional_embedding = PositionalEmbedding(d_model, max_seq_length)
+        self.positional_embeddings = PositionalEmbedding(d_model, max_seq_length)
         self.transformer_encoder = nn.ModuleList(
             [TransformerEncoder(d_model, n_heads) for _ in range(n_layers)]
         )
@@ -19,7 +19,7 @@ class TextEncoderRetrieval(nn.Module):
     # For image retrieval
     def forward(self, text, mask=None):
         x = self.embed(text)
-        x = self.positional_embedding(x)
+        x = self.positional_embeddings(x)
     
         for encoder_layer in self.transformer_encoder:
             x = encoder_layer(x, mask=mask)
