@@ -40,7 +40,7 @@ max_seq_length = 128
 text_heads = 8
 text_layers = 8
 lr = 1e-3
-epochs = 1
+epochs = 100
 batch_size = 128
 
 # ------------------------------------------------------------------------
@@ -48,7 +48,7 @@ batch_size = 128
 df = pd.read_csv('Dataset/myntradataset/styles.csv', usecols = ['id', 'subCategory'])
 
 unique, counts = np.unique(df["subCategory"].tolist(), return_counts = True)
-print(f"Classes: {unique}: {counts}")
+# print(f"Classes: {unique}: {counts}")
 
 # Split the dataset into training and validation sets
 train_df, val_df = train_test_split(df, test_size=0.10, random_state=42)
@@ -69,8 +69,8 @@ for i, name in enumerate(class_names):
 
 captions = {idx: class_name for idx, class_name in enumerate(class_names)}
 
-for idx, caption in captions.items():
-    print(f"{idx}: {caption}\n")  
+# for idx, caption in captions.items():
+#     print(f"{idx}: {caption}\n")  
     
     
 
